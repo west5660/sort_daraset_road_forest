@@ -1,0 +1,73 @@
+import os
+import shutil
+
+def create_folders_from_names(file_path):
+    # Читаем имена из текстового файла и убираем .jpg
+    with open(file_path, 'r') as f:
+        names = [line.strip().replace('.jpg', '') for line in f.readlines()]
+
+    print("Имена для поиска:", names)  # Отладочный вывод
+
+    # Создаем основную папку и подпапки
+    main_folder = 'Collected_Images_and_JSON'
+    images_folder = os.path.join(main_folder, 'Images')
+    json_folder = os.path.join(main_folder, 'JSON')
+
+    for folder in [main_folder, images_folder, json_folder]:
+        os.makedirs(folder, exist_ok=True)
+
+    # Поиск по папкам и подпапкам
+    for root, dirs, files in os.walk('.'):
+        for file in files:
+            file_name, ext = os.path.splitext(file)
+            if file_name in names:
+                if ext.lower() in ('.png', '.jpeg', '.jpg'):
+                    source = os.path.join(root, file)
+                    destination = os.path.join(images_folder, file)
+                    shutil.copy2(source, destination)
+                elif ext.lower() == '.json':
+                    source = os.path.join(root, file)
+                    destination = os.path.join(json_folder, file)
+                    shutil.copy2(source, destination)
+
+    # Теперь отбираем по 100 файлов с одинаковыми именами
+    collect_files(images_folder, json_folder)
+
+def collect_files(images_folder, json_folder):
+    # Создаем папку для собранных файлов
+    output_folder = 'Collected_100'
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Получаем списки изображений и JSON
+    images = [f for f in os.listdir(images_folder) if f.lower().endswith(('.png', '.jpeg'))]
+    json_files = [f for f in os.listdir(json_folder) if f.lower().endswith('.json')]
+
+    # Группируем по имени без расширения
+    grouped_files = {}
+    for image in images:
+        name = os.path.splitext(image)[0]
+        grouped_files.setdefault(name, []).append(image)
+
+    for json_file in json_files:
+        name = os.path.splitext(json_file)[0]
+        if name in grouped_files:
+            grouped_files[name].append(json_file)
+
+    # Сохраняем по 100 файлов с одинаковыми именами
+    for name, files in grouped_files.items():
+        count = 0
+        for file in files:
+            if count >= 100:
+                break
+            if file.lower().endswith(('.png', '.jpeg')):
+                destination_folder = os.path.join(output_folder, f"{name}_Images")
+                os.makedirs(destination_folder, exist_ok=True)
+                shutil.copy2(os.path.join(images_folder, file), os.path.join(destination_folder, file))
+            elif file.lower().endswith('.json'):
+                destination_folder = os.path.join(output_folder, f"{name}_JSON")
+                os.makedirs(destination_folder, exist_ok=True)
+                shutil.copy2(os.path.join(json_folder, file), os.path.join(destination_folder, file))
+            count += 1
+
+# create_folders_from_names('fields_n_forest.txt')
+    collect_files(images_folder, json_folder)
