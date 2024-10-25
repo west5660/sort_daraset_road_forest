@@ -1,0 +1,54 @@
+import os
+import shutil
+
+def collect_files(folder_path):
+    if not os.path.exists(folder_path):
+        print(f"Папка не найдена: {folder_path}")
+        return
+
+    file_pairs = []
+    orphan_images = []  # Для хранения изображений без пар
+
+    # Проходим по всем папкам и подпапкам
+    for root, _, files in os.walk(folder_path):
+        print(f"Проверяем папку: {root}")
+        for file in files:
+            name, ext = os.path.splitext(file)
+            if ext.lower() in ['.png', '.jpg', '.jpeg']:
+                json_file = name + '.json'
+                if json_file in files:
+                    print(f"Найдена пара: {file} и {json_file}")
+                    file_pairs.append((os.path.join(root, file), os.path.join(root, json_file)))
+                else:
+                    print(f"Изображение без пары: {file}")
+                    orphan_images.append(os.path.join(root, file))
+
+    # Проверка найденных пар
+    print(f"Найдено пар файлов: {len(file_pairs)}")
+    print(f"Изображений без пар: {len(orphan_images)}")
+
+    # Создаем папку для собранных файлов
+    output_folder = 'Collected_100aaa'
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Сохраняем файлы по 100 пар в разные папки
+    for i in range(0, len(file_pairs), 100):
+        current_folder = os.path.join(output_folder, f"Batch_{i // 100 + 1}")
+        os.makedirs(current_folder, exist_ok=True)
+
+        for img_file, json_file in file_pairs[i:i + 100]:
+            shutil.copy2(img_file, current_folder)
+            shutil.copy2(json_file, current_folder)
+
+    # Создаем папку для изображений без пар
+    orphan_folder = os.path.join(output_folder, 'Orphaned_Images')
+    os.makedirs(orphan_folder, exist_ok=True)
+
+    for img_file in orphan_images:
+        shutil.copy2(img_file, orphan_folder)
+
+    print("Сбор файлов завершен.")
+
+# Пример использования
+folder_path = input("Введите путь к папке с изображениями и JSON: ")  # Ввод пути к папке
+collect_files(folder_path)
